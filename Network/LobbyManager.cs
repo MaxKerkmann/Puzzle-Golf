@@ -17,7 +17,7 @@ public class LobbyManager
 
     private static UnityTransport transport;
 
-    private static Lobby currentLobby;
+    public static Lobby currentLobby { get; private set; }
 
     private static CancellationTokenSource lobbyPingSource, updateLobbySource;
 
@@ -51,14 +51,14 @@ public class LobbyManager
         {
             Data = new Dictionary<string, DataObject>
             {
-                { Constants.JoinCode, new DataObject(DataObject.VisibilityOptions.Member,joinCode)},
-                { Constants.LobbyName, new DataObject(DataObject.VisibilityOptions.Public,config.lobbyName)}
+                { Constants.JOINCODEKEY, new DataObject(DataObject.VisibilityOptions.Member,joinCode)},
+                { Constants.LOBBYNAMEKEY, new DataObject(DataObject.VisibilityOptions.Public,config.lobbyName)}
             }
         };
 
-        /*if(CrossSceneNetworkData.privatLobby)
+        if(CrossSceneNetworkData.privatLobby)
             lobbyOptions.IsPrivate = true;
-        */
+  
         currentLobby = await Lobbies.Instance.CreateLobbyAsync(config.lobbyName,config.maxPlayerAmount,lobbyOptions);
 
         transport.SetHostRelayData(alloc.RelayServer.IpV4, (ushort)alloc.RelayServer.Port,alloc.AllocationIdBytes,alloc.Key,alloc.ConnectionData);
@@ -66,7 +66,7 @@ public class LobbyManager
         Debug.Log("LobbyCode: " + currentLobby.LobbyCode);
         Debug.Log("Private: "+ currentLobby.IsPrivate);
         Debug.Log("Slots: " + (currentLobby.MaxPlayers - currentLobby.AvailableSlots)+"/" + currentLobby.MaxPlayers);
-        PingCurrentLobby();
+        PingCurrentLobby(); //Heartbeat 
         RefreshLobby();
     }
 
@@ -76,7 +76,9 @@ public class LobbyManager
         while(lobbyPingSource.IsCancellationRequested && currentLobby != null)
         {
             await Lobbies.Instance.SendHeartbeatPingAsync(currentLobby.Id);
+            Debug.Log("Heartbeat");
             await Task.Delay(lobbyPingTimer * 1000);
+            
         }
     }
 
@@ -88,13 +90,15 @@ public class LobbyManager
         {
             currentLobby = await Lobbies.Instance.GetLobbyAsync(currentLobby.Id);
             CurrentLobbyRefreshed?.Invoke(currentLobby);
+            Debug.Log("Refresh");
             await Task.Delay(lobbyRefreshRate * 1000);
+            
         }
     }
 
-    public static async Task<List<Lobby>> SearchLobbies()
+    public static async Task<List<Lobby>> SearchLobbies(string filter)
     {
-        /*  QueryLobbiesOptions options = new QueryLobbiesOptions();
+          QueryLobbiesOptions options = new QueryLobbiesOptions();
           options.Count = 25;
 
           // Filter for open lobbies only
@@ -122,19 +126,7 @@ public class LobbyManager
                   foundLobbies.Results.Remove(lobby);
           }
 
-          return foundLobbies.Results;*/
-        var options = new QueryLobbiesOptions
-        {
-            Count = 15,
-
-            Filters = new List<QueryFilter> {
-                new(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT),
-                new(QueryFilter.FieldOptions.IsLocked, "0", QueryFilter.OpOptions.EQ)
-            }
-        };
-
-        var foundLobbies = await Lobbies.Instance.QueryLobbiesAsync(options);
-        return foundLobbies.Results;
+          return foundLobbies.Results;
     }
 
     public static async Task JoinLobby(string lobbyData,bool isJoincode = false)
@@ -146,7 +138,7 @@ public class LobbyManager
             currentLobby = await Lobbies.Instance.JoinLobbyByCodeAsync(lobbyData);
 
 
-        var alloc = await RelayService.Instance.JoinAllocationAsync(currentLobby.Data[Constants.JoinCode].Value);
+        var alloc = await RelayService.Instance.JoinAllocationAsync(currentLobby.Data[Constants.JOINCODEKEY].Value);
         transport.SetClientRelayData(alloc.RelayServer.IpV4, (ushort)alloc.RelayServer.Port, alloc.AllocationIdBytes, alloc.Key, alloc.ConnectionData, alloc.HostConnectionData);
         Debug.Log("Lobbyname: " + currentLobby.Name);
         Debug.Log("LobbyCode: " + currentLobby.LobbyCode);
@@ -172,5 +164,11 @@ public class LobbyManager
             }
         }
     }
+
+    public Lobby GetCurrentLobby()
+    {
+        return currentLobby;
+    }
+
 
 }

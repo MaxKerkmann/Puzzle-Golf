@@ -17,18 +17,21 @@ public class ConnectToRelay : MonoBehaviour
 {
     private void Start()
     {
-        
-        switch (CrossSceneNetworkData.PlayerRole)
+        if (CrossSceneNetworkData.LobbyID == null)
         {
-            case "Host":
-                createLobby();
-                break;
-            case "Client":
-                joinLobby();
-                break;
-            default:
-                SceneManager.LoadScene("Base");
-                break;
+            switch (CrossSceneNetworkData.PlayerRole)
+            {
+                case "Host":
+                    createLobby();
+                    break;
+                case "Client":
+                    joinLobby();
+                    break;
+                default:
+                    SceneManager.LoadScene("Base");
+                    break;
+            }
+            SetInitialData();
         }
     }
     private async void joinLobby()
@@ -55,7 +58,10 @@ public class ConnectToRelay : MonoBehaviour
         NetworkManager.Singleton.StartHost();
     }
 
-   
+    private void SetInitialData()
+    {
+        CrossSceneNetworkData.lastLevel = -1;
+    }
 
 
 }

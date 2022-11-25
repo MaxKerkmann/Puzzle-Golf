@@ -94,14 +94,14 @@ public class NetworkStartUI : MonoBehaviour
 
     public async void FillLobbyList()
     {
-        foundLobbies = await LobbyManager.SearchLobbies();
+        foundLobbies = await LobbyManager.SearchLobbies(lobbyFilter.text);
         List<string> lobbyNames = new List<string>();
         Debug.Log("LobbyCount: " + foundLobbies.Count);
         if (foundLobbies.Count > 0)
         {
             for (int i = 0; i < foundLobbies.Count; i++)
             {
-                lobbyNames.Add(foundLobbies[i].Name);
+                lobbyNames.Add(foundLobbies[i].Name + " " + (foundLobbies[i].MaxPlayers - foundLobbies[i].AvailableSlots) + "/" + foundLobbies[i].MaxPlayers);
                 Debug.Log("FoundLobbyName: " + foundLobbies[i].Name);
             }
 

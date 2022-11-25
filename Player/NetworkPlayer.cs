@@ -19,8 +19,7 @@ public class NetworkPlayer : NetworkBehaviour
     private bool isLocal = true;
 
     //Network
-    private NetworkVariable<NetworkString> playerName = new NetworkVariable<NetworkString>();
-    private bool setName = false;
+    private NetworkVariable<NetworkString> playerName = new NetworkVariable<NetworkString>("",NetworkVariableReadPermission.Everyone,NetworkVariableWritePermission.Owner);
     
 
     private void Start()
@@ -31,26 +30,30 @@ public class NetworkPlayer : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         isLocal = false;
-        if (IsServer)
+        if (IsOwner)
         {
             playerName.Value = CrossSceneNetworkData.PlayerName;
         }
+        
         
     }
 
     void Update()
     {
+        Debug.Log(OwnerClientId + ": " + playerName.Value);
+        if (gameObject.GetComponentInChildren<TextMeshProUGUI>().text.Length == 0 && !playerName.Value.Equals(""))
+        {
+            Debug.Log("Set player name to: " + playerName.Value);
+            SetPlayerName();
+    
+        }
+
         if (!isLocal)
         {
             if (!IsOwner) return;
         }
         HandleMovement();
-
-        if (!setName && !string.IsNullOrEmpty(playerName.Value))
-        {
-            SetPlayerName();
-            setName = true;
-        }
+     
 
     }
 
